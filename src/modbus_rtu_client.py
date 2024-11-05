@@ -6,6 +6,7 @@ from typing import Optional, List, Union
 from pymodbus.client import ModbusSerialClient
 from pymodbus.exceptions import ModbusException
 from pymodbus.pdu import ExceptionResponse
+from pymodbus.pdu.pdu import ModbusPDU
 
 
 class BaudRate(Enum):
@@ -51,6 +52,18 @@ class ModbusRTUClient:
         self._client = None
         self._logger = logging.getLogger(self.__class__.__name__)
 
+    @property
+    def connected(self) -> bool:
+        """
+        Check if the client is currently connected
+        
+        Returns:
+            bool: True if connected, False otherwise
+        """
+        return (self._client is not None and
+                self._client.connected and 
+                self._client.is_socket_open())
+
     def connect(self) -> bool:
         """
         Establish connection to Modbus RTU server
@@ -73,23 +86,59 @@ class ModbusRTUClient:
         except Exception as err:
             self._logger.error(f"Failed to connect to serial port {self._config.port}: {err}")
             return False
-    
-    @property
-    def connected(self) -> bool:
-        """
-        Check if the client is currently connected
-        
-        Returns:
-            bool: True if connected, False otherwise
-        """
-        return (self._client is not None and
-                self._client.connected and 
-                self._client.is_socket_open())
 
     def disconnect(self) -> None:
         """Close the Modbus RTU connection"""
-        if self._client and self._client.is_socket_open():
+        if self._client and self.connected:
             self._client.close()
+            
+    def read_coils(
+        self, 
+        address: int, 
+        count: int = 1, 
+        slave_number: int = 1,
+        no_response_expected: bool = False
+    ) -> Optional[List[bool]]:
+        """
+        Read coils from the Modbus server (code 0x01)
+        
+        Args:
+            address (int): Starting address of coils
+            count (int): Number of coils to read
+            slave_number (int): Slave identifier
+            no_response_expected (bool): The client will not expect a response to the request
+            
+        Returns:
+            Optional[List[bool]]: List of coil values if successful, None if no response expected or on failure
+        """
+        # FIXIT slave_number shall come from pydantic to be between 1-247
+        if not self.connected:
+            self._logger.error("Cannot read coils: Client is not connected")
+            return None
+            
+        try:
+            if self._client is None:
+                return None
+
+            response = self._client.read_coils(
+                address=address,
+                count=count,
+                slave=slave_number,
+                no_response_expected=no_response_expected
+            )
+
+            if no_response_expected:
+                return None
+
+            if not self._validate_response(response):
+                message = f"Invalid master response: {response}"
+                raise ModbusException(message)
+                
+            return response.bits[:count]
+            
+        except ModbusException as err:
+            self._logger.error(f"Failed to read coils: {err}")
+            return None
 
     def __enter__(self):
         """Context manager entry"""
@@ -100,7 +149,7 @@ class ModbusRTUClient:
         """Context manager exit"""
         self.disconnect()
 
-    def _validate_response(self, response: Union[ExceptionResponse, None]) -> bool:
+    def _validate_response(self, response: ModbusPDU) -> bool:
         """
         Validate the Modbus response
         
@@ -108,14 +157,14 @@ class ModbusRTUClient:
             response: Response from Modbus server
             
         Returns:
-            bool: True if response is valid, False otherwise
+            bool: True if response is not a modbus exception, False otherwise
         """
         if response is None:
+            # FIXIT I do not think it can None at any time
             self._logger.error("No response received from server")
             return False
         
         if isinstance(response, ExceptionResponse):
-            self._logger.error(f"Received exception response: {response}")
             return False
             
         return True

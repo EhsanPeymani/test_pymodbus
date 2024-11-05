@@ -68,3 +68,36 @@ Still, I have a lot of problem with CO and DI. This is my discovery:
 - The initial configuration value ({"addr": 1, "value": 1}) isn't being applied correctly
 - However, the simulator is maintaining state between runs - values written to coils persist
 - You can still write to coil 1 even when it's not in the "write" list. This suggests that the "write" list in the simulator might only be enforced for registers (uint16, uint32, etc.) and not for coils.
+
+### isError() and isinstance(result, ExceptionResponse)
+It returns True when response function code is greater than `0x80` (128 in decimal).
+
+In Modbus protocol, when a function code is greater than 0x80 (128 in decimal), it indicates an exception response. 
+
+When an error occurs, the slave device responds by:
+- Taking the original function code
+- Adding 0x80 to it to set the most significant bit
+
+For example:
+- Normal Read Holding Registers: 0x03
+- Exception for Read Holding Registers: 0x83 (0x03 + 0x80)
+
+Therefore, when `resp.isError() == True`, `isinstance(resp, ExceptionResponse) == True`
+
+An exception response is sent by a slave device when it cannot fulfill a request. For example:
+- Invalid function code
+- Invalid register address
+- Invalid data value
+- Device failure
+
+### client.connected vs client.is_socket_open()
+`client.connected` is a property that indicates whether the client is currently in a connected state
+It represents the overall connection status of the ModbusSerialClient
+It's more about the logical connection state
+
+`client.is_socket_open()` method specifically checks if the underlying serial port/socket is actually open and available for communication. It performs a physical check of the connection.
+Returns True if the serial port is open and ready for communication, False otherwise
+This is more of a hardware-level check.
+
+The key difference is that `connected` is a status property tracking the intended/logical connection state, while `is_socket_open()` actively checks the physical connection status.
+For robust error handling, it's good practice to check both since they could potentially be in different states.
