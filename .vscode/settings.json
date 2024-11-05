@@ -1,0 +1,57 @@
+{
+    "[powershell]": {
+        "editor.suggestSelection": "first",
+        "editor.snippetSuggestions": "top"
+    },
+    "powershell.integratedConsole.showOnStartup": true,
+    "powershell.enableProfileLoading": true,
+    "powershell.integratedConsole.focusConsoleOnExecute": true,   // Focuses the PowerShell Integrated Console when running code
+    "powershell.integratedConsole.suppressStartupBanner": false,  // Shows/hides the startup message
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "todo-tree.highlights.customHighlight": {
+        "TODO": {
+            "icon": "check",
+            "type": "text-and-comment",
+            "iconColour": "#FFFF00", // Yellow
+            "foreground": "#FFFFFF", // White
+            "background": "#008000", // Green
+            "opacity": 50,
+        },
+        "FIXME": {
+            "icon": "beaker",
+            "type": "text-and-comment",
+            "iconColour": "#FF0000", // Red
+            "foreground": "#FFFFFF", // White
+            "background": "#FF0000"  // Red
+        }
+    },
+    "todo-tree.general.tags": [
+    // List all desired tags
+    "FIXME",
+    "FIX",
+    "FIXIT",
+    "BUG",
+    "TODO"
+    ],
+    "todo-tree.general.tagGroups": {
+        "FIXME": [
+            "FIXME",
+            "FIXIT",
+            "FIX"
+        ]
+    },
+    "flake8.args": [
+        "--verbose",
+        "--max-line-length=140",
+        "--ignore=E266,W293,W291"
+    ],
+    "black-formatter.showNotifications": "always",
+    "python.analysis.exclude": [
+        "personal_tests",
+        "**/personal_tests"
+    ]
+}
