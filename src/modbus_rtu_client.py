@@ -2,7 +2,7 @@ import logging
 import pymodbus
 from enum import Enum
 from dataclasses import dataclass
-from typing import Optional, List, Union
+from typing import Optional, List, Callable
 from pymodbus.client import ModbusSerialClient
 from pymodbus.exceptions import ModbusException
 from pymodbus.pdu import ExceptionResponse
@@ -88,10 +88,56 @@ class ModbusRTUClient:
             return False
 
     def disconnect(self) -> None:
-        """Close the Modbus RTU connection"""
         if self._client and self.connected:
             self._client.close()
+
+    def _read_bits(
+        self,
+        function_name: str, 
+        read_function: Callable, 
+        address: int, 
+        count: int = 1, 
+        slave_number: int = 1, 
+        no_response_expected: bool = False
+    ) -> Optional[List[bool]]:
+        """
+        Generic method to read bits (coils or discrete inputs) from the Modbus server
+        
+        Args:
+            function_name: Name of the function for logging
+            read_function: Modbus client function to call
+            address (int): Starting address
+            count (int): Number of bits to read
+            slave_number (int): Slave identifier
+            no_response_expected (bool): The client will not expect a response to the request
             
+        Returns:
+            Optional[List[bool]]: List of bit values if successful, None if no response expected or on failure
+        """
+        # FIXIT slave_number shall come from pydantic to be between 1-247
+        try:
+            if self._client is None:
+                return None
+
+            response = read_function(
+                address=address,
+                count=count,
+                slave=slave_number,
+                no_response_expected=no_response_expected
+            )
+
+            if no_response_expected:
+                return None
+
+            if not self._validate_response(response):
+                raise ModbusException(f"Invalid master response: {response}")
+                
+            return response.bits[:count]
+            
+        except ModbusException as err:
+            self._logger.error(f"Failed to read {function_name}: {err}")
+            return None
+    
     def read_coils(
         self, 
         address: int, 
@@ -111,34 +157,41 @@ class ModbusRTUClient:
         Returns:
             Optional[List[bool]]: List of coil values if successful, None if no response expected or on failure
         """
-        # FIXIT slave_number shall come from pydantic to be between 1-247
-        if not self.connected:
-            self._logger.error("Cannot read coils: Client is not connected")
-            return None
+        return self._read_bits(
+            function_name="coils",
+            read_function=self._client.read_coils,
+            address=address,
+            count=count,
+            slave_number=slave_number,
+            no_response_expected=no_response_expected)
+
+    def read_discrete_inputs(
+        self, 
+        address: int, 
+        count: int = 1, 
+        slave_number: int = 1,
+        no_response_expected: bool = False
+    ) -> Optional[List[bool]]:
+        """
+        Read discrete inputs from the Modbus server (code 0x02)
+        
+        Args:
+            address (int): Starting address of discrete inputs
+            count (int): Number of discrete inputs to read
+            slave_number (int): Slave identifier
+            no_response_expected (bool): The client will not expect a response to the request
             
-        try:
-            if self._client is None:
-                return None
-
-            response = self._client.read_coils(
-                address=address,
-                count=count,
-                slave=slave_number,
-                no_response_expected=no_response_expected
-            )
-
-            if no_response_expected:
-                return None
-
-            if not self._validate_response(response):
-                message = f"Invalid master response: {response}"
-                raise ModbusException(message)
-                
-            return response.bits[:count]
-            
-        except ModbusException as err:
-            self._logger.error(f"Failed to read coils: {err}")
-            return None
+        Returns:
+            Optional[List[bool]]: List of discrete input values if successful, None if no response expected or on failure
+        """
+        return self._read_bits(
+            function_name="discrete inputs",
+            read_function=self._client.read_discrete_inputs,
+            address=address,
+            count=count,
+            slave_number=slave_number,
+            no_response_expected=no_response_expected
+        )
 
     def __enter__(self):
         """Context manager entry"""
