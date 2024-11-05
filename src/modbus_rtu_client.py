@@ -39,7 +39,7 @@ class SerialConfig:
     retries: int = 3
 
 
-class ModbusRTUClient:
+class ModbusRtuClient:
     """
     A class to handle ModbusRTU client communications over serial connection.
     """
@@ -102,7 +102,7 @@ class ModbusRTUClient:
     ) -> Optional[List[bool]]:
         """
         Generic method to read bits (coils or discrete inputs) from the Modbus server
-        
+
         Args:
             function_name: Name of the function for logging
             read_function: Modbus client function to call
@@ -110,7 +110,7 @@ class ModbusRTUClient:
             count (int): Number of bits to read
             slave_number (int): Slave identifier
             no_response_expected (bool): The client will not expect a response to the request
-            
+
         Returns:
             Optional[List[bool]]: List of bit values if successful, None if no response expected or on failure
         """
@@ -131,13 +131,13 @@ class ModbusRTUClient:
 
             if not self._validate_response(response):
                 raise ModbusException(f"Invalid master response: {response}")
-                
+
             return response.bits[:count]
-            
+
         except ModbusException as err:
             self._logger.error(f"Failed to read {function_name}: {err}")
-            return None
-    
+            raise err
+
     def read_coils(
         self, 
         address: int, 
@@ -147,13 +147,13 @@ class ModbusRTUClient:
     ) -> Optional[List[bool]]:
         """
         Read coils from the Modbus server (code 0x01)
-        
+
         Args:
             address (int): Starting address of coils
             count (int): Number of coils to read
             slave_number (int): Slave identifier
             no_response_expected (bool): The client will not expect a response to the request
-            
+
         Returns:
             Optional[List[bool]]: List of coil values if successful, None if no response expected or on failure
         """
@@ -174,13 +174,13 @@ class ModbusRTUClient:
     ) -> Optional[List[bool]]:
         """
         Read discrete inputs from the Modbus server (code 0x02)
-        
+
         Args:
             address (int): Starting address of discrete inputs
             count (int): Number of discrete inputs to read
             slave_number (int): Slave identifier
             no_response_expected (bool): The client will not expect a response to the request
-            
+
         Returns:
             Optional[List[bool]]: List of discrete input values if successful, None if no response expected or on failure
         """
@@ -205,10 +205,10 @@ class ModbusRTUClient:
     def _validate_response(self, response: ModbusPDU) -> bool:
         """
         Validate the Modbus response
-        
+
         Args:
             response: Response from Modbus server
-            
+
         Returns:
             bool: True if response is not a modbus exception, False otherwise
         """
@@ -216,8 +216,8 @@ class ModbusRTUClient:
             # FIXIT I do not think it can None at any time
             self._logger.error("No response received from server")
             return False
-        
+
         if isinstance(response, ExceptionResponse):
             return False
-            
+
         return True
