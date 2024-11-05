@@ -40,7 +40,7 @@
                     "action": {
                         "bits": null,
                         "uint16": null,
-                        "uint32": "random",
+                        "uint32": null,
                         "float32": null,
                         "string": null
                     }
@@ -66,7 +66,7 @@
                 2100
             ],
             "uint32": [
-                {"addr": 4, "value": 617001},
+                {"addr": 4, "value": 11620918},
                 [3037, 3038]
             ],
             "float32": [

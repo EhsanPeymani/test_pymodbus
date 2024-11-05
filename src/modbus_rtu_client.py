@@ -1,3 +1,4 @@
+from ast import Try
 import logging
 from enum import Enum
 from dataclasses import dataclass
@@ -52,6 +53,16 @@ class ModbusRtuClient:
         self._logger = logging.getLogger(self.__class__.__name__)
 
     @property
+    def config(self) -> SerialConfig:
+        """
+        Get current client configuration
+        
+        Returns:
+            SerialConfig: Current serial configuration
+        """
+        return self._config
+
+    @property
     def connected(self) -> bool:
         """
         Check if the client is currently connected
@@ -85,52 +96,20 @@ class ModbusRtuClient:
             self._logger.error(f"Failed to connect to serial port {self._config.port}: {err}")
             return False
 
-    def disconnect(self) -> None:
-        if self._client and self.connected:
-            self._client.close()
-
-    def _read_bits(
-        self,
-        function_name: str, 
-        read_function: Callable, 
-        address: int, 
-        count: int = 1, 
-        slave_number: int = 1, 
-        no_response_expected: bool = False
-    ) -> Optional[List[bool]]:
+    def disconnect(self) -> bool:
         """
-        Generic method to read bits (coils or discrete inputs) from the Modbus server
-
-        Args:
-            function_name: Name of the function for logging
-            read_function: Modbus client function to call
-            address (int): Starting address
-            count (int): Number of bits to read
-            slave_number (int): Slave identifier
-            no_response_expected (bool): The client will not expect a response to the request
-
+        Safely disconnect from the Modbus server
+        
         Returns:
-            Optional[List[bool]]: List of bit values if successful, None if no response expected or on failure
+            bool: True if disconnection was successful
         """
-        # FIXIT slave_number shall come from pydantic to be between 1-247
         try:
-            response = read_function(
-                address=address,
-                count=count,
-                slave=slave_number,
-                no_response_expected=no_response_expected
-            )
-
-            if no_response_expected:
-                return None
-
-            if not self._validate_response(response):
-                raise ModbusException(f"Invalid master response: {response}")
-
-            return response.bits[:count]
-
-        except ModbusException as err:
-            self._logger.error(f"Failed to read {function_name}: {err}")
+            if self._client and self.connected:
+                self._client.close()
+                return True
+            return False
+        except Exception as err:
+            self._logger.error(f"Error during disconnect: {err}")
             raise err
 
     def read_coils(
@@ -223,3 +202,152 @@ class ModbusRtuClient:
             return False
 
         return True
+
+    def _read_bits(
+        self,
+        function_name: str, 
+        read_function: Callable, 
+        address: int, 
+        count: int = 1, 
+        slave_number: int = 1, 
+        no_response_expected: bool = False
+    ) -> Optional[List[bool]]:
+        """
+        Generic method to read bits (coils or discrete inputs) from the Modbus server
+
+        Args:
+            function_name: Name of the function for logging
+            read_function: Modbus client function to call
+            address (int): Starting address
+            count (int): Number of bits to read
+            slave_number (int): Slave identifier
+            no_response_expected (bool): The client will not expect a response to the request
+
+        Returns:
+            Optional[List[bool]]: List of bit values if successful, None if no response expected or on failure
+        """
+        # FIXIT slave_number shall come from pydantic to be between 1-247
+        try:
+            response = read_function(
+                address=address,
+                count=count,
+                slave=slave_number,
+                no_response_expected=no_response_expected
+            )
+
+            if no_response_expected:
+                return None
+
+            if not self._validate_response(response):
+                raise ModbusException(f"Invalid master response: {response}")
+
+            return response.bits[:count]
+
+        except ModbusException as err:
+            self._logger.error(f"Failed to read {function_name}: {err}")
+            raise err
+
+    def _read_registers(
+        self,
+        function_name: str, 
+        read_function: Callable, 
+        address: int, 
+        count: int = 1, 
+        slave_number: int = 1,
+        no_response_expected: bool = False
+    ) -> Optional[List[int]]:
+        """
+        Generic method to read registers (holding or input) from the Modbus server
+
+        Args:
+            function_name: Name of the function for logging
+            read_function: Modbus client function to call
+            address (int): Starting address
+            count (int): Number of registers to read
+            slave_number (int): Slave identifier
+            no_response_expected (bool): The client will not expect a response to the request
+
+        Returns:
+            Optional[List[int]]: List of register values if successful, None if no response expected or on failure
+        """
+        try:
+            response = read_function(
+                address=address,
+                count=count,
+                slave=slave_number,
+                no_response_expected=no_response_expected
+            )
+
+            if no_response_expected:
+                return None
+
+            if not self._validate_response(response):
+                raise ModbusException(f"Invalid master response: {response}")
+
+            return response.registers[:count]
+
+        except ModbusException as err:
+            self._logger.error(f"Failed to read {function_name}: {err}")
+            raise err
+
+    def read_holding_registers(
+        self, 
+        address: int, 
+        count: int = 1, 
+        slave_number: int = 1,
+        no_response_expected: bool = False
+    ) -> Optional[List[int]]:
+        """
+        Read holding registers from the Modbus server (code 0x03)
+
+        Args:
+            address (int): Starting address of holding registers
+            count (int): Number of registers to read
+            slave_number (int): Slave identifier
+            no_response_expected (bool): The client will not expect a response to the request
+
+        Returns:
+            Optional[List[int]]: List of register values if successful, None if no response expected or on failure
+        """
+        if self._client is None:
+            raise ModbusException("Modbus RTU client not initialized")
+        
+        return self._read_registers(
+            function_name="holding registers",
+            read_function=self._client.read_holding_registers,
+            address=address,
+            count=count,
+            slave_number=slave_number,
+            no_response_expected=no_response_expected
+        )
+
+    def read_input_registers(
+        self, 
+        address: int, 
+        count: int = 1, 
+        slave_number: int = 1,
+        no_response_expected: bool = False
+    ) -> Optional[List[int]]:
+        """
+        Read input registers from the Modbus server (code 0x04)
+
+        Args:
+            address (int): Starting address of input registers
+            count (int): Number of registers to read
+            slave_number (int): Slave identifier
+            no_response_expected (bool): The client will not expect a response to the request
+
+        Returns:
+            Optional[List[int]]: List of register values if successful, None if no response expected or on failure
+        """
+        if self._client is None:
+            raise ModbusException("Modbus RTU client not initialized")
+        
+        return self._read_registers(
+            function_name="input registers",
+            read_function=self._client.read_input_registers,
+            address=address,
+            count=count,
+            slave_number=slave_number,
+            no_response_expected=no_response_expected
+        )
