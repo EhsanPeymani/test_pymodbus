@@ -1,5 +1,4 @@
 import logging
-import pymodbus
 from enum import Enum
 from dataclasses import dataclass
 from typing import Optional, List, Callable
@@ -73,7 +72,6 @@ class ModbusRtuClient:
         """
         try:
             self._client = ModbusSerialClient(
-                framer=pymodbus.FramerType.RTU,
                 port=self._config.port,
                 baudrate=self._config.baudrate,
                 bytesize=self._config.bytesize,
@@ -195,7 +193,8 @@ class ModbusRtuClient:
 
     def __enter__(self):
         """Context manager entry"""
-        self.connect()
+        if not self.connect():
+            raise ModbusException("Failed to connect to Modbus device")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
