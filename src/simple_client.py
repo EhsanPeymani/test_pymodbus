@@ -64,26 +64,26 @@ def test_coils(client):
             print(f"Write Exception: {str(e)}")
         time.sleep(0.1)
 
-    # # Test writing multiple coils at once
-    # print("\nWriting multiple coils at once (addresses 0-2):")
-    # try:
-    #     values = [True, False, True]  # Values for coils 0, 1, and 2
-    #     write_result = client.write_coils(0, values, slave=1)
-    #     if isinstance(write_result, ExceptionResponse):
-    #         print(f"Write Exception Code: {write_result.exception_code}")
-    #     elif write_result.isError():
-    #         print(f"Write Error: {write_result}")
-    #     else:
-    #         print("Multiple write successful!")
+    # Test writing multiple coils at once
+    print("\nWriting multiple coils at once (addresses 0-2):")
+    try:
+        values = [True, False, True]  # Values for coils 0, 1, and 2
+        write_result = client.write_coils(0, values, slave=1)
+        if isinstance(write_result, ExceptionResponse):
+            print(f"Write Exception Code: {write_result.exception_code}")
+        elif write_result.isError():
+            print(f"Write Error: {write_result}")
+        else:
+            print("Multiple write successful!")
 
-    #         # Read back all values
-    #         time.sleep(0.1)
-    #         read_result = client.read_coils(0, 3, slave=1)
-    #         if not read_result.isError():
-    #             print(f"Read back values: {read_result.bits}")
+            # Read back all values
+            time.sleep(0.1)
+            read_result = client.read_coils(0, 3, slave=1)
+            if not read_result.isError():
+                print(f"Read back values: {read_result.bits[0:3]}")
 
-    # except Exception as e:
-    #     print(f"Multiple Write Exception: {str(e)}")
+    except Exception as e:
+        print(f"Multiple Write Exception: {str(e)}")
 
 
 def main():
