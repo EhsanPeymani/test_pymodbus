@@ -114,9 +114,6 @@ class ModbusRtuClient:
         """
         # FIXIT slave_number shall come from pydantic to be between 1-247
         try:
-            if self._client is None:
-                return None
-
             response = read_function(
                 address=address,
                 count=count,
@@ -155,6 +152,9 @@ class ModbusRtuClient:
         Returns:
             Optional[List[bool]]: List of coil values if successful, None if no response expected or on failure
         """
+        if self._client is None:
+            raise ModbusException("Modbus RTU client not initialized")
+        
         return self._read_bits(
             function_name="coils",
             read_function=self._client.read_coils,
@@ -182,6 +182,9 @@ class ModbusRtuClient:
         Returns:
             Optional[List[bool]]: List of discrete input values if successful, None if no response expected or on failure
         """
+        if self._client is None:
+            raise ModbusException("Modbus RTU client not initialized")
+        
         return self._read_bits(
             function_name="discrete inputs",
             read_function=self._client.read_discrete_inputs,
