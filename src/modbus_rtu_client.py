@@ -110,7 +110,7 @@ class ModbusRtuClient:
             return False
         except Exception as err:
             self._logger.error(f"Error during disconnect: {err}")
-            raise err
+            return False
 
     def read_coils(
         self, 
@@ -290,7 +290,7 @@ class ModbusRtuClient:
             self._logger.error(f"Failed to read {function_name}: {err}")
             raise err
 
-    def read_holding_registers(
+    def read_holding_register(
         self, 
         address: int, 
         count: int = 1, 
@@ -313,7 +313,7 @@ class ModbusRtuClient:
             raise ModbusException("Modbus RTU client not initialized")
         
         return self._read_registers(
-            function_name="holding registers",
+            function_name="holding register",
             read_function=self._client.read_holding_registers,
             address=address,
             count=count,
@@ -321,7 +321,7 @@ class ModbusRtuClient:
             no_response_expected=no_response_expected
         )
 
-    def read_input_registers(
+    def read_input_register(
         self, 
         address: int, 
         count: int = 1, 
@@ -344,7 +344,7 @@ class ModbusRtuClient:
             raise ModbusException("Modbus RTU client not initialized")
         
         return self._read_registers(
-            function_name="input registers",
+            function_name="input register",
             read_function=self._client.read_input_registers,
             address=address,
             count=count,
@@ -373,7 +373,7 @@ class ModbusRtuClient:
             ModbusException: If response is None
         """
         count = DataDecoder.get_register_count(data_type=data_type)
-        response = self.read_holding_registers(address=address, count=count, slave_number=slave_number)
+        response = self.read_holding_register(address=address, count=count, slave_number=slave_number)
         
         if response is None:
             raise ModbusException(f"Response from device is None but {data_type.name} is expected")
