@@ -1,7 +1,7 @@
 import logging
 from enum import Enum
 from dataclasses import dataclass
-from typing import Optional, List, Callable
+from typing import Any, Optional, List, Callable
 from pymodbus.client import ModbusSerialClient
 from pymodbus.exceptions import ModbusException
 from pymodbus.pdu import ExceptionResponse
@@ -351,41 +351,52 @@ class ModbusRtuClient:
             slave_number=slave_number,
             no_response_expected=no_response_expected
         )
-    
-    def read_uint16(
+
+    def _hr_read_value(
         self,
         address: int,
+        data_type: DataType,
         slave_number: int = 1
-    ) -> int:
-        data_type = DataType.UINT16
+    ) -> Any:
+        """
+        Base function to read values from Modbus holding registers.
+        
+        Args:
+            address (int): Register address to read from
+            data_type (DataType): Type of data to read (UINT16, INT16, UINT32, etc.)
+            slave_number (int): Slave device number, defaults to 1
+        
+        Returns:
+            int: Decoded register value
+            
+        Raises:
+            ModbusException: If response is None
+        """
         count = DataDecoder.get_register_count(data_type=data_type)
-        response = self.read_holding_registers(address=address, count=count, slave_number=slave_number)        
+        response = self.read_holding_registers(address=address, count=count, slave_number=slave_number)
+        
         if response is None:
             raise ModbusException(f"Response from device is None but {data_type.name} is expected")
+        
         return DataDecoder.decode_registers(response, data_type=data_type)
-    
-    def read_int16(
+
+    def read_hr_uint16(
         self,
         address: int,
         slave_number: int = 1
     ) -> int:
-        return 0
-    
-    def read_uint32(
+        return self._hr_read_value(address, DataType.UINT16, slave_number)
+
+    def read_hr_int16(
         self,
         address: int,
         slave_number: int = 1
     ) -> int:
-        data_type = DataType.UINT32
-        count = DataDecoder.get_register_count(data_type=data_type)
-        response = self.read_holding_registers(address=address, count=count, slave_number=slave_number)        
-        if response is None:
-            raise ModbusException(f"Response from device is None but {data_type.name} is expected")
-        return DataDecoder.decode_registers(response, data_type=data_type)
-    
-    def read_int32(
+        return self._hr_read_value(address, DataType.INT16, slave_number)
+
+    def read_hr_uint32(
         self,
         address: int,
         slave_number: int = 1
     ) -> int:
-        return 0
+        return self._hr_read_value(address, DataType.UINT32, slave_number)
