@@ -1,4 +1,3 @@
-from ast import Try
 import logging
 from enum import Enum
 from dataclasses import dataclass
@@ -7,6 +6,7 @@ from pymodbus.client import ModbusSerialClient
 from pymodbus.exceptions import ModbusException
 from pymodbus.pdu import ExceptionResponse
 from pymodbus.pdu.pdu import ModbusPDU
+from decoder import DataType, DataDecoder
 
 
 class BaudRate(Enum):
@@ -351,3 +351,41 @@ class ModbusRtuClient:
             slave_number=slave_number,
             no_response_expected=no_response_expected
         )
+    
+    def read_uint16(
+        self,
+        address: int,
+        slave_number: int = 1
+    ) -> int:
+        data_type = DataType.UINT16
+        count = DataDecoder.get_register_count(data_type=data_type)
+        response = self.read_holding_registers(address=address, count=count, slave_number=slave_number)        
+        if response is None:
+            raise ModbusException(f"Response from device is None but {data_type.name} is expected")
+        return DataDecoder.decode_registers(response, data_type=data_type)
+    
+    def read_int16(
+        self,
+        address: int,
+        slave_number: int = 1
+    ) -> int:
+        return 0
+    
+    def read_uint32(
+        self,
+        address: int,
+        slave_number: int = 1
+    ) -> int:
+        data_type = DataType.UINT32
+        count = DataDecoder.get_register_count(data_type=data_type)
+        response = self.read_holding_registers(address=address, count=count, slave_number=slave_number)        
+        if response is None:
+            raise ModbusException(f"Response from device is None but {data_type.name} is expected")
+        return DataDecoder.decode_registers(response, data_type=data_type)
+    
+    def read_int32(
+        self,
+        address: int,
+        slave_number: int = 1
+    ) -> int:
+        return 0

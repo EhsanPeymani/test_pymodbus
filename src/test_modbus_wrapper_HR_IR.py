@@ -1,5 +1,5 @@
 from modbus_rtu_client import ModbusRtuClient, SerialConfig
-from decoder import decode_registers
+from decoder import DataDecoder, DataType
 import time
 import logging
 
@@ -30,19 +30,22 @@ def main():
         hr_uint32 = client.read_holding_registers(address=4, count=2)
         if hr_uint32:
             logger.info(f"HR (uint32) = {hr_uint32}")
-            value = decode_registers(hr_uint32, data_type="uint32")
+            value = DataDecoder.decode_registers(hr_uint32, data_type=DataType.UINT32)
             logger.info(f"value={value}")
+            
+        hr_uint32 = client.read_uint32(address=4, slave_number=1)
+        logger.info(f"Using client.read_uint32: value={value}")
         
         hr_float = client.read_holding_registers(address=6, count=2)
         if hr_float:
             logger.info(f"HR (float32) = {hr_float}")
-            value = decode_registers(hr_float, data_type="float32")
+            value = DataDecoder.decode_registers(hr_float, data_type=DataType.FLOAT32)
             logger.info(f"value={value}")    
         
         hr_string = client.read_holding_registers(address=16, count=5)
         if hr_string:
             logger.info(f"HR (string) = {hr_string}")
-            value = decode_registers(hr_string, data_type="string")
+            value = DataDecoder.decode_registers(hr_string, data_type=DataType.STRING)
             logger.info(f"value={value}")    
         
 
