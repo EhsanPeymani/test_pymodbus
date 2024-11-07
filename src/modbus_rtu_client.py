@@ -1,42 +1,11 @@
 import logging
-from enum import Enum
-from dataclasses import dataclass
 from typing import Any, Optional, List, Callable
 from pymodbus.client import ModbusSerialClient
 from pymodbus.exceptions import ModbusException
 from pymodbus.pdu import ExceptionResponse
 from pymodbus.pdu.pdu import ModbusPDU
 from decoder import DataType, DataDecoder
-
-
-class BaudRate(Enum):
-    BAUD_9600 = 9600
-    BAUD_19200 = 19200
-    BAUD_38400 = 38400
-    BAUD_57600 = 57600
-    BAUD_115200 = 115200
-
-
-@dataclass
-class SerialConfig:
-    """Configuration data class for serial connection parameters
-
-    Attributes:
-        port: Serial port used for communication.
-        baudrate: Bits per second - based on BaudRate
-        bytesize: Number of bits per byte 7-8.
-        parity: ‘E’ven, ‘O’dd or ‘N’one
-        stopbits: Number of stop bits 0-2.
-        timeout: Timeout for connecting and receiving data, in seconds.
-        retries: Max number of retries per request.
-    """
-    port: str
-    baudrate: int = BaudRate.BAUD_9600.value
-    bytesize: int = 8
-    parity: str = 'N'
-    stopbits: int = 1
-    timeout: float = 3
-    retries: int = 3
+from serial_config import SerialConfig
 
 
 class ModbusRtuClient:
@@ -135,7 +104,6 @@ class ModbusRtuClient:
             raise ModbusException("Modbus RTU client not initialized")
         
         return self._read_bits(
-            function_name="coils",
             read_function=self._client.read_coils,
             address=address,
             count=count,
@@ -165,7 +133,6 @@ class ModbusRtuClient:
             raise ModbusException("Modbus RTU client not initialized")
         
         return self._read_bits(
-            function_name="discrete inputs",
             read_function=self._client.read_discrete_inputs,
             address=address,
             count=count,
@@ -205,7 +172,6 @@ class ModbusRtuClient:
 
     def _read_bits(
         self,
-        function_name: str, 
         read_function: Callable, 
         address: int, 
         count: int = 1, 
@@ -216,7 +182,6 @@ class ModbusRtuClient:
         Generic method to read bits (coils or discrete inputs) from the Modbus server
 
         Args:
-            function_name: Name of the function for logging
             read_function: Modbus client function to call
             address (int): Starting address
             count (int): Number of bits to read
@@ -244,12 +209,11 @@ class ModbusRtuClient:
             return response.bits[:count]
 
         except ModbusException as err:
-            self._logger.error(f"Failed to read {function_name}: {err}")
+            self._logger.error(f"Failed to read {read_function.__name__}: {err}")
             raise err
 
     def _read_registers(
         self,
-        function_name: str, 
         read_function: Callable, 
         address: int, 
         count: int = 1, 
@@ -260,7 +224,6 @@ class ModbusRtuClient:
         Generic method to read registers (holding or input) from the Modbus server
 
         Args:
-            function_name: Name of the function for logging
             read_function: Modbus client function to call
             address (int): Starting address
             count (int): Number of registers to read
@@ -287,7 +250,7 @@ class ModbusRtuClient:
             return response.registers[:count]
 
         except ModbusException as err:
-            self._logger.error(f"Failed to read {function_name}: {err}")
+            self._logger.error(f"Failed to read {read_function.__name__}: {err}")
             raise err
 
     def read_holding_register(
@@ -313,7 +276,6 @@ class ModbusRtuClient:
             raise ModbusException("Modbus RTU client not initialized")
         
         return self._read_registers(
-            function_name="holding register",
             read_function=self._client.read_holding_registers,
             address=address,
             count=count,
@@ -344,7 +306,6 @@ class ModbusRtuClient:
             raise ModbusException("Modbus RTU client not initialized")
         
         return self._read_registers(
-            function_name="input register",
             read_function=self._client.read_input_registers,
             address=address,
             count=count,
@@ -360,6 +321,7 @@ class ModbusRtuClient:
     ) -> Any:
         """
         Base function to read values from Modbus holding registers.
+        This include decoding of the device response.
         
         Args:
             address (int): Register address to read from
@@ -400,3 +362,39 @@ class ModbusRtuClient:
         slave_number: int = 1
     ) -> int:
         return self._hr_read_value(address, DataType.UINT32, slave_number)
+
+    def read_hr_int32(
+        self,
+        address: int,
+        slave_number: int = 1
+    ) -> int:
+        return self._hr_read_value(address, DataType.INT32, slave_number)
+    
+    def read_hr_uint64(
+        self,
+        address: int,
+        slave_number: int = 1
+    ) -> int:
+        return self._hr_read_value(address, DataType.UINT64, slave_number)
+
+    def read_hr_int64(
+        self,
+        address: int,
+        slave_number: int = 1
+    ) -> int:
+        return self._hr_read_value(address, DataType.INT64, slave_number)
+
+    def read_hr_float32(
+        self,
+        address: int,
+        slave_number: int = 1
+    ) -> float:
+        return self._hr_read_value(address, DataType.FLOAT32, slave_number)
+
+    def read_hr_float64(
+        self,
+        address: int,
+        slave_number: int = 1
+    ) -> float:
+        return self._hr_read_value(address, DataType.FLOAT64, slave_number)
+
