@@ -77,18 +77,27 @@ class DataDecoder:
         try:
             decoder = BinaryPayloadDecoder.fromRegisters(
                 registers,
-                byteorder=Endian.BIG,
-                wordorder=Endian.BIG
+                byteorder=byte_order,
+                wordorder=word_order
             )
             
             if data_type == DataType.UINT16:
                 return decoder.decode_16bit_uint()
             
+            if data_type == DataType.INT16:
+                return decoder.decode_16bit_int()
+            
             if data_type == DataType.UINT32:
                 return decoder.decode_32bit_uint()
             
+            if data_type == DataType.INT32:
+                return decoder.decode_32bit_int()
+            
             if data_type == DataType.UINT64:
                 return decoder.decode_64bit_uint()
+            
+            if data_type == DataType.INT64:
+                return decoder.decode_64bit_int()
             
             if data_type == DataType.FLOAT32:
                 return decoder.decode_32bit_float()

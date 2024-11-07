@@ -47,7 +47,7 @@
     "flake8.args": [
         "--verbose",
         "--max-line-length=140",
-        "--ignore=E266,W293,W291,W504"
+        "--ignore=E266,W293,W291,W504,W503"
     ],
     "black-formatter.showNotifications": "always",
     "python.analysis.exclude": [

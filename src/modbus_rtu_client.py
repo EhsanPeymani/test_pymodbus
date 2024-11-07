@@ -4,6 +4,7 @@ from pymodbus.client import ModbusSerialClient
 from pymodbus.exceptions import ModbusException
 from pymodbus.pdu import ExceptionResponse
 from pymodbus.pdu.pdu import ModbusPDU
+from pymodbus.constants import Endian
 from decoder import DataType, DataDecoder
 from serial_config import SerialConfig
 
@@ -324,6 +325,8 @@ class ModbusRtuClient:
         data_type: DataType,
         slave_number: int = 1,
         string_length: int = 0,
+        byte_order: Endian = Endian.BIG,
+        word_order: Endian = Endian.BIG
     ) -> Any:
         """
         Base function to read values from Modbus holding registers.
