@@ -1,12 +1,11 @@
-from modbus_rtu_client import ModbusRtuClient, SerialConfig
+from modbus_rtu_client import ModbusRtuClient
+from serial_config import SerialConfig
 import time
 
 
 def main():
-    config = SerialConfig(port="COM9")
+    config = SerialConfig(port="COM10")
     modus_client = ModbusRtuClient(serial_config=config)
-    
-    # result = modus_client.read_discrete_inputs(address=1, count=1, slave_number=1)
     
     with modus_client as client:
         coil_addresses = [0]
