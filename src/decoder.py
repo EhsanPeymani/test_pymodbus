@@ -75,6 +75,7 @@ class DataDecoder:
         word_order: Endian = Endian.BIG
     ) -> Any:
         try:
+            print(registers)
             decoder = BinaryPayloadDecoder.fromRegisters(
                 registers,
                 byteorder=byte_order,

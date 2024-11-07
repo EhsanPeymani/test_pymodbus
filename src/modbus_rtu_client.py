@@ -1,3 +1,4 @@
+from ast import Call
 import logging
 from typing import Any, Optional, List, Callable
 from pymodbus.client import ModbusSerialClient
@@ -322,16 +323,18 @@ class ModbusRtuClient:
             no_response_expected=no_response_expected,
         )
 
-    def _hr_read_value(
+    def _read_register_value(
         self,
+        read_function: Callable,
         address: int,
         data_type: DataType,
-        slave_number: int = 1,
-        string_length: int = 0,
-        byte_order: Endian = Endian.BIG,
-        word_order: Endian = Endian.BIG,
+        slave_number: int,
+        string_length: int,
+        byte_order: Endian,
+        word_order: Endian,
     ) -> Any:
         """
+        # TODO Shall be updated
         Base function to read values from Modbus holding registers.
         This include decoding of the device response.
 
@@ -350,7 +353,8 @@ class ModbusRtuClient:
         count = DataDecoder.get_register_count(
             data_type=data_type, string_length=string_length
         )
-        response = self.read_holding_register(
+
+        response = read_function(
             address=address, count=count, slave_number=slave_number
         )
 
@@ -359,35 +363,152 @@ class ModbusRtuClient:
                 f"Response from device is None but {data_type.name} is expected"
             )
 
-        return DataDecoder.decode_registers(response, data_type=data_type)
+        return DataDecoder.decode_registers(
+            response, data_type=data_type, byte_order=byte_order, word_order=word_order
+        )
+
+    def _read_hr_value(
+        self,
+        address: int,
+        data_type: DataType,
+        slave_number: int = 1,
+        string_length: int = 0,
+        byte_order: Endian = Endian.BIG,
+        word_order: Endian = Endian.BIG,
+    ) -> Any:
+        """
+        TODO Shall be updated
+        Base function to read values from Modbus holding registers.
+        This include decoding of the device response.
+
+        Args:
+            address (int): Register address to read from
+            data_type (DataType): Type of data to read (UINT16, INT16, UINT32, etc.)
+            slave_number (int): Slave device number, defaults to 1
+            string_length (int): Length of string in characters (only for STRING type)
+
+        Returns:
+            Any: Decoded register value
+
+        Raises:
+            ModbusException: If response is None
+        """
+        if self._client is None:
+            raise ModbusException("Modbus RTU client not initialized")
+
+        return self._read_register_value(
+            read_function=self.read_holding_register,
+            address=address,
+            data_type=data_type,
+            slave_number=slave_number,
+            string_length=string_length,
+            byte_order=byte_order,
+            word_order=word_order,
+        )
+
+    def _read_ir_value(
+        self,
+        address: int,
+        data_type: DataType,
+        slave_number: int = 1,
+        string_length: int = 0,
+        byte_order: Endian = Endian.BIG,
+        word_order: Endian = Endian.BIG,
+    ) -> Any:
+        """
+        TODO Shall be updated
+        Base function to read values from Modbus input registers.
+        This include decoding of the device response.
+
+        Args:
+            address (int): Register address to read from
+            data_type (DataType): Type of data to read (UINT16, INT16, UINT32, etc.)
+            slave_number (int): Slave device number, defaults to 1
+            string_length (int): Length of string in characters (only for STRING type)
+
+        Returns:
+            Any: Decoded register value
+
+        Raises:
+            ModbusException: If response is None
+        """
+        if self._client is None:
+            raise ModbusException("Modbus RTU client not initialized")
+
+        return self._read_register_value(
+            read_function=self.read_input_register,
+            address=address,
+            data_type=data_type,
+            slave_number=slave_number,
+            string_length=string_length,
+            byte_order=byte_order,
+            word_order=word_order,
+        )
 
     def read_hr_uint16(self, address: int, slave_number: int = 1) -> int:
-        return self._hr_read_value(address, DataType.UINT16, slave_number)
+        return self._read_hr_value(address, DataType.UINT16, slave_number)
 
     def read_hr_int16(self, address: int, slave_number: int = 1) -> int:
-        return self._hr_read_value(address, DataType.INT16, slave_number)
+        return self._read_hr_value(address, DataType.INT16, slave_number)
 
     def read_hr_uint32(self, address: int, slave_number: int = 1) -> int:
-        return self._hr_read_value(address, DataType.UINT32, slave_number)
+        return self._read_hr_value(address, DataType.UINT32, slave_number)
 
     def read_hr_int32(self, address: int, slave_number: int = 1) -> int:
-        return self._hr_read_value(address, DataType.INT32, slave_number)
+        return self._read_hr_value(address, DataType.INT32, slave_number)
 
     def read_hr_uint64(self, address: int, slave_number: int = 1) -> int:
-        return self._hr_read_value(address, DataType.UINT64, slave_number)
+        return self._read_hr_value(address, DataType.UINT64, slave_number)
 
     def read_hr_int64(self, address: int, slave_number: int = 1) -> int:
-        return self._hr_read_value(address, DataType.INT64, slave_number)
+        return self._read_hr_value(address, DataType.INT64, slave_number)
 
     def read_hr_float32(self, address: int, slave_number: int = 1) -> float:
-        return self._hr_read_value(address, DataType.FLOAT32, slave_number)
+        return self._read_hr_value(address, DataType.FLOAT32, slave_number)
 
     def read_hr_float64(self, address: int, slave_number: int = 1) -> float:
-        return self._hr_read_value(address, DataType.FLOAT64, slave_number)
+        return self._read_hr_value(address, DataType.FLOAT64, slave_number)
 
     def read_hr_string(
         self, address: int, string_length: int, slave_number: int = 1
     ) -> str:
-        return self._hr_read_value(
-            address, DataType.STRING, slave_number, string_length
+        return self._read_hr_value(
+            address=address,
+            data_type=DataType.STRING,
+            slave_number=slave_number,
+            string_length=string_length,
+        )
+
+    def read_ir_uint16(self, address: int, slave_number: int = 1) -> int:
+        return self._read_ir_value(address, DataType.UINT16, slave_number)
+
+    def read_ir_int16(self, address: int, slave_number: int = 1) -> int:
+        return self._read_ir_value(address, DataType.INT16, slave_number)
+
+    def read_ir_uint32(self, address: int, slave_number: int = 1) -> int:
+        return self._read_ir_value(address, DataType.UINT32, slave_number)
+
+    def read_ir_int32(self, address: int, slave_number: int = 1) -> int:
+        return self._read_ir_value(address, DataType.INT32, slave_number)
+
+    def read_ir_uint64(self, address: int, slave_number: int = 1) -> int:
+        return self._read_ir_value(address, DataType.UINT64, slave_number)
+
+    def read_ir_int64(self, address: int, slave_number: int = 1) -> int:
+        return self._read_ir_value(address, DataType.INT64, slave_number)
+
+    def read_ir_float32(self, address: int, slave_number: int = 1) -> float:
+        return self._read_ir_value(address, DataType.FLOAT32, slave_number)
+
+    def read_ir_float64(self, address: int, slave_number: int = 1) -> float:
+        return self._read_ir_value(address, DataType.FLOAT64, slave_number)
+
+    def read_ir_string(
+        self, address: int, string_length: int, slave_number: int = 1
+    ) -> str:
+        return self._read_ir_value(
+            address=address,
+            data_type=DataType.STRING,
+            slave_number=slave_number,
+            string_length=string_length,
         )
