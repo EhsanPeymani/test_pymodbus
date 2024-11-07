@@ -138,6 +138,8 @@ class ModbusRtuClient:
         if self._client is None:
             raise ModbusException("Modbus RTU client not initialized")
 
+        print("here")
+
         return self._read_bits(
             read_function=self._client.read_discrete_inputs,
             address=address,
@@ -198,6 +200,7 @@ class ModbusRtuClient:
             Optional[List[bool]]: List of bit values if successful, None if no response expected or on failure
         """
         # FIXIT slave_number shall come from pydantic to be between 1-247
+        print("here")
         try:
             response = read_function(
                 address=address,
@@ -205,13 +208,13 @@ class ModbusRtuClient:
                 slave=slave_number,
                 no_response_expected=no_response_expected,
             )
+            print(response)
 
             if no_response_expected:
                 return None
 
             if not self._validate_response(response):
                 raise ModbusException(f"Invalid master response: {response}")
-
             return response.bits[:count]
 
         except ModbusException as err:
@@ -326,7 +329,7 @@ class ModbusRtuClient:
         slave_number: int = 1,
         string_length: int = 0,
         byte_order: Endian = Endian.BIG,
-        word_order: Endian = Endian.BIG
+        word_order: Endian = Endian.BIG,
     ) -> Any:
         """
         Base function to read values from Modbus holding registers.
